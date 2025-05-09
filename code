@@ -1,0 +1,5 @@
+<script>start("/Users/alifehmiyildiz/Desktop/GitHub/personality_classification/code/");</script>
+<script>onHasParentDirectory();</script>
+<script>addRow("analysis","analysis",1,128,"128 B",1746834175,"5/9/25, 7:42:55 PM");</script>
+<script>addRow("data_processing","data_processing",1,160,"160 B",1746834175,"5/9/25, 7:42:55 PM");</script>
+<script>addRow("models","models",1,96,"96 B",1746834175,"5/9/25, 7:42:55 PM");</script>
