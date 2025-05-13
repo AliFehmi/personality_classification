@@ -1,0 +1,140 @@
+Preprocessing:
+Grouped the texts by users, removed stopwords stemmed etc.
+Baseline model:
+used the cleaned data with tf-idf vectorizer (unigrams and bigrams, max 5000 features) feed it to logistic regression model, got low recall, precision and f1 score especially for neurotic class. So the model did not know what makes a user neurotic at all. Here is the result;
+              precision    recall  f1-score   support
+
+Not Neurotic       0.60      1.00      0.75        30
+    Neurotic       0.00      0.00      0.00        20
+
+    accuracy                           0.60        50
+   macro avg       0.30      0.50      0.38        50
+weighted avg       0.36      0.60      0.45        50
+
+Confusion Matrix:
+[[30  0]
+ [20  0]]
+- Improvements tried.
+1) turns out we have somewhat skewed data and neurotic class was minority.
+🔹 Total distribution:
+Counter({0: 151, 1: 99})
+🔹 Training distribution:
+Counter({0: 121, 1: 79})
+🔹 Test distribution:
+Counter({0: 30, 1: 20})
+
+ So I tried the "class_weight" parameter in the logistic regression so that the weights are updated largely in the minor classes w.r.t how minor it is and I got better results;
+              precision    recall  f1-score   support
+
+Not Neurotic       0.59      0.77      0.67        30
+    Neurotic       0.36      0.20      0.26        20
+
+    accuracy                           0.54        50
+   macro avg       0.48      0.48      0.46        50
+weighted avg       0.50      0.54      0.50        50
+
+Confusion Matrix:
+[[23  7]
+ [16  4]]
+    
+2) trying more ngrams which helped a bit and increasing the features with drop (most common or rare occurrences) did not yield meaningful change so for now I am ignoring this later I will try to tune it in Zaratan. Results are very slight improvement;
+              precision    recall  f1-score   support
+
+Not Neurotic       0.60      0.80      0.69        30
+    Neurotic       0.40      0.20      0.27        20
+
+    accuracy                           0.56        50
+   macro avg       0.50      0.50      0.48        50
+weighted avg       0.52      0.56      0.52        50
+
+Confusion Matrix:
+[[24  6]
+ [16  4]]
+ 
+ 3) Used Chi-squared test to select top features that are relavant to the class. Here is what I found;
+ an example calculation:
+📊 Sample 2x2 Contingency Table:
+
+                    | Neurotic (1) | Not Neurotic (0) | Row Total
+---------------------------------------------------------------
+"anxious" Present   |     O11=30   |      O12=10      |    40
+"anxious" Absent    |     O21=70   |      O22=90      |   160
+---------------------------------------------------------------
+Column Total        |     100      |       100        |   200
+
+
+🧮 Step 1: Calculate Expected Frequencies E_ij
+
+Using the formula:
+E_ij = (row total × column total) / grand total
+
+First row (word present):
+E_11 = (40 × 100) / 200 = 20  
+E_12 = (40 × 100) / 200 = 20  
+
+Second row (word absent):
+E_21 = (160 × 100) / 200 = 80  
+E_22 = (160 × 100) / 200 = 80  
+
+
+🧾 Step 2: Compute Chi-Squared (χ²) Value
+
+Using the formula:
+χ² = Σ (O - E)² / E
+
+Breakdown:
+
+(O11 - E11)² / E11 = (30 - 20)² / 20 = (10)² / 20 = 100 / 20 = 5.00  
+(O12 - E12)² / E12 = (10 - 20)² / 20 = (-10)² / 20 = 100 / 20 = 5.00  
+(O21 - E21)² / E21 = (70 - 80)² / 80 = (-10)² / 80 = 100 / 80 = 1.25  
+(O22 - E22)² / E22 = (90 - 80)² / 80 = (10)² / 80 = 100 / 80 = 1.25  
+
+Total χ² = 5.00 + 5.00 + 1.25 + 1.25 = 12.50
+✅ Final Chi-Square Value:
+χ² = 12.5
+
+ 🔹 Top 5 features predicting NEUROTIC (based on weight):
+fuck                      | chi2 = 1.1323 | weight = 0.5721
+kitty                     | chi2 = 1.6724 | weight = 0.5441
+black                     | chi2 = 0.7441 | weight = 0.4662
+long time                 | chi2 = 1.1048 | weight = 0.4542
+hate                      | chi2 = 0.4714 | weight = 0.4494
+
+🔹 Top 5 features predicting NOT NEUROTIC (based on weight):
+good                      | chi2 = 0.3933 | weight = -0.5797
+life                      | chi2 = 0.3563 | weight = -0.4437
+vegas                     | chi2 = 0.6805 | weight = -0.4426
+like                      | chi2 = 0.2338 | weight = -0.4391
+soon                      | chi2 = 0.3816 | weight = -0.4165
+
+the model has improved slightly.
+              precision    recall  f1-score   support
+
+Not Neurotic       0.62      0.80      0.70        30
+    Neurotic       0.45      0.25      0.32        20
+
+    accuracy                           0.58        50
+   macro avg       0.53      0.53      0.51        50
+weighted avg       0.55      0.58      0.55        50
+
+Confusion Matrix:
+[[24  6]
+ [15  5]]
+
+4) Empath to find related categories within the user status'.
+There are predefined themes like "violence" which is actually a vector of words e.g. ["attack", "kill", "war", "stab", "murder", "fight", "shoot", "assault", ...] each word was added because they were close in word embeddings when empath is trained.
+For each users combined text, tokenize them and check if the token exists in the word vector of the theme we decided manually, counts the amount of words that occurred and normalize the count by dividing it by the total number of tokens in users text.
+In the end we get vector for each user like [0.176, 0.000, 0.000, 0.059, ...] each value represents the normalized value of belonging to the specific category and there are as many elements as we theme we decided manually.
+Here is the result;
+              precision    recall  f1-score   support
+
+Not Neurotic       0.62      0.80      0.70        30
+    Neurotic       0.45      0.25      0.32        20
+
+    accuracy                           0.58        50
+   macro avg       0.53      0.53      0.51        50
+weighted avg       0.55      0.58      0.55        50
+
+Confusion Matrix:
+[[24  6]
+ [15  5]]
